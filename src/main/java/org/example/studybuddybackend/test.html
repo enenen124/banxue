@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>注册测试</title>
+</head>
+<body>
+    <h1>注册测试</h1>
+    <input type="text" id="username" placeholder="用户名">
+    <input type="password" id="password" placeholder="密码">
+    <input type="text" id="nickname" placeholder="昵称">
+    <button onclick="register()">注册</button>
+
+    <script>
+        function register() {
+            // 1. 获取输入框的值
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const nickname = document.getElementById('nickname').value;
+
+            // 2. 构造要发送的数据
+            const data = {
+                username: username,
+                password: password,
+                nickname: nickname
+            };
+
+            // 3. 发送 POST 请求到你的后端接口
+            fetch('http://localhost:3000/api/auth/register', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json' // 告诉后端这是 JSON 数据
+                },
+                body: JSON.stringify(data) // 把数据转成 JSON 字符串
+            })
+            .then(response => response.json()) // 解析后端返回的 JSON
+            .then(result => {
+                // 4. 在页面上显示结果
+                alert('注册成功！返回结果：' + JSON.stringify(result));
+                console.log('后端返回：', result);
+            })
+            .catch(error => {
+                // 5. 处理错误
+                alert('注册失败：' + error.message);
+                console.error('请求出错：', error);
+            });
+        }
+    </script>
+</body>
+</html>
