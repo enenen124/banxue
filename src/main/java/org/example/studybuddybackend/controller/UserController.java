@@ -70,4 +70,16 @@ public class UserController {
         Long userId = (Long) request.getAttribute("userId");
         return ResponseEntity.ok(userService.removeFavorite(userId, postId));
     }
+
+    @GetMapping("/posts")
+    public ResponseEntity<List<Map<String, Object>>> getUserPosts(HttpServletRequest request) {
+        Long userId = (Long) request.getAttribute("userId");
+        return ResponseEntity.ok(userService.getUserPosts(userId));
+    }
+
+    @GetMapping("/likes")
+    public ResponseEntity<List<Map<String, Object>>> getUserLikes(HttpServletRequest request) {
+        Long userId = (Long) request.getAttribute("userId");
+        return ResponseEntity.ok(userService.getUserLikes(userId));
+    }
 }

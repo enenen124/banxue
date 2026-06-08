@@ -24,6 +24,7 @@ public class UserServiceImpl implements UserService {
     private final UserAchievementRepository userAchievementRepository;
     private final StudyRecordRepository studyRecordRepository;
     private final StudyRoomMemberRepository studyRoomMemberRepository;
+    private final PostLikeRepository postLikeRepository;
     private final BCryptPasswordEncoder passwordEncoder;
 
     private static final Map<String, String[]> ACHIEVEMENTS = new LinkedHashMap<>();
@@ -174,5 +175,42 @@ public class UserServiceImpl implements UserService {
         favoriteRepository.delete(fav);
 
         return Map.of("message", "取消收藏成功");
+    }
+
+    @Override
+    public List<Map<String, Object>> getUserPosts(Long userId) {
+        List<Post> posts = postRepository.findByUserIdOrderByCreatedAtDesc(userId);
+        return posts.stream()
+                .map(post -> {
+                    Map<String, Object> map = new LinkedHashMap<>();
+                    map.put("id", post.getId());
+                    map.put("content", post.getContent());
+                    map.put("images", post.getImages());
+                    map.put("likeCount", post.getLikeCount());
+                    map.put("commentCount", post.getCommentCount());
+                    map.put("createdAt", post.getCreatedAt());
+                    return map;
+                })
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<Map<String, Object>> getUserLikes(Long userId) {
+        List<PostLike> likes = postLikeRepository.findByUserIdOrderByCreatedAtDesc(userId);
+        return likes.stream()
+                .map(like -> {
+                    Post post = postRepository.findById(like.getPostId()).orElse(null);
+                    if (post == null) return null;
+                    Map<String, Object> map = new LinkedHashMap<>();
+                    map.put("id", post.getId());
+                    map.put("content", post.getContent());
+                    map.put("images", post.getImages());
+                    map.put("likeCount", post.getLikeCount());
+                    map.put("commentCount", post.getCommentCount());
+                    map.put("createdAt", post.getCreatedAt());
+                    return map;
+                })
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
     }
 }

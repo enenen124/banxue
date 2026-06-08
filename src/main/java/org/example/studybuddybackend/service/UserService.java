@@ -12,4 +12,6 @@ public interface UserService {
     List<Map<String, Object>> getFavorites(Long userId);
     Map<String, Object> addFavorite(Long userId, Long postId);
     Map<String, Object> removeFavorite(Long userId, Long postId);
+    List<Map<String, Object>> getUserPosts(Long userId);
+    List<Map<String, Object>> getUserLikes(Long userId);
 }

@@ -5,13 +5,15 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
+import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+
+import java.nio.file.Paths;
 
 @Configuration
 @RequiredArgsConstructor
 public class WebConfig implements WebMvcConfigurer {
 
-    // 【关键】让 Spring 自动注入 JwtInterceptor
     private final JwtInterceptor jwtInterceptor;
 
     // 跨域配置
@@ -19,24 +21,33 @@ public class WebConfig implements WebMvcConfigurer {
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/api/**")
                 .allowedOrigins(
-                        "http://localhost:5173",   // 前端本地开发
-                        "http://localhost:8080",   // 后端本地（前端同源调试用）
-                        "https://banxue.vercel.app" // 前端生产环境
+                        "http://localhost:5173",
+                        "http://localhost:8080",
+                        "https://banxue.vercel.app"
                 )
                 .allowedMethods("*")
                 .allowedHeaders("*")
                 .allowCredentials(true);
     }
 
+    // 上传文件静态资源服务
+    @Override
+    public void addResourceHandlers(ResourceHandlerRegistry registry) {
+        String uploadPath = Paths.get("./uploads/").toAbsolutePath().normalize().toUri().toString();
+        registry.addResourceHandler("/uploads/**")
+                .addResourceLocations(uploadPath);
+    }
+
     // 拦截器配置
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
-        registry.addInterceptor(jwtInterceptor) // 使用注入的拦截器
-                .addPathPatterns("/api/**") // 拦截所有 /api/ 开头的请求
+        registry.addInterceptor(jwtInterceptor)
+                .addPathPatterns("/api/**")
                 .excludePathPatterns(
-                        "/api/auth/register",  // 排除注册接口
-                        "/api/auth/login",     // 排除登录接口
-                        "/api/auth/github/callback"  // 排除 GitHub 回调接口
+                        "/api/auth/register",
+                        "/api/auth/login",
+                        "/api/auth/github",
+                        "/api/auth/github/callback"
                 );
     }
 }

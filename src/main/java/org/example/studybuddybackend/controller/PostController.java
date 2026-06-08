@@ -75,4 +75,13 @@ public class PostController {
         Long userId = (Long) request.getAttribute("userId");
         return ResponseEntity.ok(postService.toggleLike(id, userId));
     }
+
+    // 前端使用 POST 方法点赞，兼容处理
+    @PostMapping("/{id}/like")
+    public ResponseEntity<Map<String, Object>> toggleLikePost(
+            @PathVariable Long id,
+            HttpServletRequest request) {
+        Long userId = (Long) request.getAttribute("userId");
+        return ResponseEntity.ok(postService.toggleLike(id, userId));
+    }
 }
