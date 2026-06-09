@@ -16,5 +16,7 @@ public interface StudyRecordRepository extends JpaRepository<StudyRecord, Long> 
     @Query("SELECT COALESCE(SUM(r.minutes), 0) FROM StudyRecord r WHERE r.userId = :userId")
     Integer sumMinutesByUserId(@Param("userId") Long userId);
 
+    long countByUserId(Long userId);
+
     List<StudyRecord> findByUserIdAndCreatedAtBetween(Long userId, LocalDateTime start, LocalDateTime end);
 }

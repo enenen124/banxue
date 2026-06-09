@@ -1,6 +1,5 @@
 package org.example.studybuddybackend.config;
 
-import org.example.studybuddybackend.config.JwtInterceptor;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
@@ -8,6 +7,7 @@ import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
+import java.io.File;
 import java.nio.file.Paths;
 
 @Configuration
@@ -19,7 +19,7 @@ public class WebConfig implements WebMvcConfigurer {
     // 跨域配置
     @Override
     public void addCorsMappings(CorsRegistry registry) {
-        registry.addMapping("/api/**")
+        registry.addMapping("/**")
                 .allowedOrigins(
                         "http://localhost:5173",
                         "http://localhost:8080",
@@ -33,9 +33,17 @@ public class WebConfig implements WebMvcConfigurer {
     // 上传文件静态资源服务
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
-        String uploadPath = Paths.get("./uploads/").toAbsolutePath().normalize().toUri().toString();
+        // 确保上传目录存在
+        String uploadPath = Paths.get("./uploads/").toAbsolutePath().normalize().toString();
+        File uploadDir = new File(uploadPath);
+        if (!uploadDir.exists()) {
+            uploadDir.mkdirs();
+        }
+
+        String resourceLocation = uploadDir.toURI().toString();
         registry.addResourceHandler("/uploads/**")
-                .addResourceLocations(uploadPath);
+                .addResourceLocations(resourceLocation)
+                .setCachePeriod(3600);
     }
 
     // 拦截器配置

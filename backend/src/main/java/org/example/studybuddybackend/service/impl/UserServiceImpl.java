@@ -117,7 +117,16 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Transactional
     public List<Map<String, Object>> getAchievements(Long userId) {
+        // 先检查并解锁成就
+        checkAndUnlockAchievements(userId);
+
+        // 获取已解锁的成就代码集合
+        Set<String> unlockedCodes = userAchievementRepository.findByUserId(userId).stream()
+                .map(UserAchievement::getAchievementCode)
+                .collect(Collectors.toSet());
+
         List<Map<String, Object>> result = new ArrayList<>();
 
         for (Map.Entry<String, String[]> entry : ACHIEVEMENTS.entrySet()) {
@@ -125,11 +134,69 @@ public class UserServiceImpl implements UserService {
             item.put("code", entry.getKey());
             item.put("name", entry.getValue()[0]);
             item.put("desc", entry.getValue()[1]);
-            item.put("unlocked", userAchievementRepository.existsByUserIdAndAchievementCode(userId, entry.getKey()));
+            item.put("unlocked", unlockedCodes.contains(entry.getKey()));
             result.add(item);
         }
 
         return result;
+    }
+
+    /**
+     * 检查用户数据并自动解锁达成的成就
+     */
+    private void checkAndUnlockAchievements(Long userId) {
+        User user = userRepository.findById(userId).orElse(null);
+        if (user == null) return;
+
+        Set<String> unlockedCodes = userAchievementRepository.findByUserId(userId).stream()
+                .map(UserAchievement::getAchievementCode)
+                .collect(Collectors.toSet());
+
+        // first_focus: 完成第1次专注
+        if (!unlockedCodes.contains("first_focus")) {
+            long studyCount = studyRecordRepository.countByUserId(userId);
+            if (studyCount > 0) {
+                unlockAchievement(userId, "first_focus");
+            }
+        }
+
+        // focus_10h: 累计学习10小时 (600分钟)
+        if (!unlockedCodes.contains("focus_10h")) {
+            Integer totalMinutes = studyRecordRepository.sumMinutesByUserId(userId);
+            if (totalMinutes != null && totalMinutes >= 600) {
+                unlockAchievement(userId, "focus_10h");
+            }
+        }
+
+        // points_100: 累计获得100积分
+        if (!unlockedCodes.contains("points_100")) {
+            if (user.getPoints() >= 100) {
+                unlockAchievement(userId, "points_100");
+            }
+        }
+
+        // first_post: 发布第1篇帖子
+        if (!unlockedCodes.contains("first_post")) {
+            long postCount = postRepository.countByUserId(userId);
+            if (postCount > 0) {
+                unlockAchievement(userId, "first_post");
+            }
+        }
+
+        // likes_10: 获得10个赞
+        if (!unlockedCodes.contains("likes_10")) {
+            long totalLikes = postRepository.sumLikesByUserId(userId);
+            if (totalLikes >= 10) {
+                unlockAchievement(userId, "likes_10");
+            }
+        }
+    }
+
+    private void unlockAchievement(Long userId, String code) {
+        UserAchievement ua = new UserAchievement();
+        ua.setUserId(userId);
+        ua.setAchievementCode(code);
+        userAchievementRepository.save(ua);
     }
 
     @Override
