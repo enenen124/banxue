@@ -49,5 +49,6 @@ public class WebConfig implements WebMvcConfigurer {
                         "/api/auth/github",
                         "/api/auth/github/callback"
                 );
+        // 注意：其他接口的放行逻辑在 JwtInterceptor.preHandle 中处理
     }
 }

@@ -31,17 +31,33 @@ public class JwtInterceptor implements HandlerInterceptor {
             return true;
         }
 
-        // 放行帖子列表和详情的GET请求
-        if ("GET".equalsIgnoreCase(request.getMethod()) && requestURI.matches("/api/posts(/\\d+)?/?")) {
-            // 仍然尝试解析token（如果有的话），但不强制要求
-            String token = request.getHeader("Authorization");
-            if (token != null && token.startsWith("Bearer ")) {
-                token = token.substring(7);
-                if (jwtUtil.validateToken(token)) {
-                    Long userId = jwtUtil.getUserIdFromToken(token);
-                    request.setAttribute("userId", userId);
-                }
-            }
+        // 放行帖子列表和详情的GET请求（用 startsWith 而非 matches，避免查询参数干扰）
+        if ("GET".equalsIgnoreCase(request.getMethod()) && requestURI.startsWith("/api/posts")) {
+            tryParseToken(request);
+            return true;
+        }
+
+        // 放行自习室列表的GET请求
+        if ("GET".equalsIgnoreCase(request.getMethod()) && requestURI.startsWith("/api/rooms")) {
+            tryParseToken(request);
+            return true;
+        }
+
+        // 放行用户公开信息的GET请求（/api/users/profile, /api/users/{id}）
+        if ("GET".equalsIgnoreCase(request.getMethod()) && 
+            (requestURI.startsWith("/api/users/profile") || requestURI.matches("/api/users/\\d+"))) {
+            tryParseToken(request);
+            return true;
+        }
+
+        // 放行成就/NFT查询的GET请求
+        if ("GET".equalsIgnoreCase(request.getMethod()) && requestURI.startsWith("/api/achievements/")) {
+            tryParseToken(request);
+            return true;
+        }
+
+        // 放行静态资源（上传文件）
+        if (requestURI.startsWith("/uploads/")) {
             return true;
         }
 
@@ -60,5 +76,19 @@ public class JwtInterceptor implements HandlerInterceptor {
         response.setContentType("application/json;charset=UTF-8");
         response.getWriter().write("{\"message\":\"未授权\"}");
         return false;
+    }
+
+    /**
+     * 尝试解析token（如果有的话），但不强制要求
+     */
+    private void tryParseToken(HttpServletRequest request) {
+        String token = request.getHeader("Authorization");
+        if (token != null && token.startsWith("Bearer ")) {
+            token = token.substring(7);
+            if (jwtUtil.validateToken(token)) {
+                Long userId = jwtUtil.getUserIdFromToken(token);
+                request.setAttribute("userId", userId);
+            }
+        }
     }
 }
