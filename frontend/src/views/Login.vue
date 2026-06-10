@@ -55,10 +55,41 @@ const toggleMode = () => {
   errorMsg.value = ''
 }
 
-// GitHub登录 — 跳转到后端授权接口
-const githubLogin = () => {
+// GitHub登录 — 支持真实OAuth和模拟模式
+const githubLoading = ref(false)
+const githubLogin = async () => {
   const API_BASE = window.location.hostname === 'localhost' ? '' : 'https://banxue-backend-klem.onrender.com'
-  window.location.href = API_BASE + '/api/auth/github'
+  githubLoading.value = true
+  errorMsg.value = ''
+
+  try {
+    const resp = await fetch(API_BASE + '/api/auth/github', { redirect: 'manual' })
+
+    // 如果返回 302（重定向），说明是真实 OAuth 模式，跟随跳转
+    if (resp.type === 'opaqueredirect' || resp.status === 302) {
+      window.location.href = API_BASE + '/api/auth/github'
+      return
+    }
+
+    // 如果返回 JSON（模拟模式），直接处理
+    if (resp.ok) {
+      const data = await resp.json()
+      if (data.token) {
+        userStore.token = data.token
+        localStorage.setItem('token', data.token)
+        successMsg.value = '👋 GitHub登录成功！即将跳转...'
+        setTimeout(() => router.push('/discover'), 1000)
+      } else {
+        errorMsg.value = 'GitHub登录返回异常'
+      }
+    } else {
+      errorMsg.value = 'GitHub登录失败'
+    }
+  } catch (e) {
+    errorMsg.value = 'GitHub登录失败，请重试'
+  } finally {
+    githubLoading.value = false
+  }
 }
 
 // 页面加载时检查URL参数（GitHub回调回来的token或error）

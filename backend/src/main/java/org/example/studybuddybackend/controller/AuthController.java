@@ -10,6 +10,8 @@ import org.example.studybuddybackend.service.AuthService;
 import org.example.studybuddybackend.util.JwtUtil;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
@@ -22,6 +24,8 @@ import java.util.Map;
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
 public class AuthController {
+    private static final Logger log = LoggerFactory.getLogger(AuthController.class);
+
     private final AuthService authService;
     private final UserRepository userRepository;
     private final JwtUtil jwtUtil;
@@ -49,8 +53,29 @@ public class AuthController {
         return ResponseEntity.ok(authService.login(request.getUsername(), request.getPassword()));
     }
 
+    /**
+     * 检查 GitHub OAuth 凭证是否已配置
+     */
+    private boolean isGithubConfigured() {
+        return githubClientId != null
+                && !githubClientId.isBlank()
+                && !githubClientId.equals("your-github-client-id");
+    }
+
+    /**
+     * GitHub 登录入口
+     * - 有真实凭证：跳转 GitHub 授权页（OAuth 流程）
+     * - 无凭证（开发模式）：直接模拟 GitHub 用户登录
+     */
     @GetMapping("/github")
-    public ResponseEntity<Void> githubLogin() {
+    public ResponseEntity<?> githubLogin() {
+        if (!isGithubConfigured()) {
+            // 开发模式：模拟 GitHub 登录，直接返回 mock 用户 + JWT
+            log.info("GitHub OAuth 未配置，使用模拟登录模式");
+            return handleMockGithubLogin();
+        }
+
+        // 正式模式：跳转 GitHub 授权页
         String url = "https://github.com/login/oauth/authorize?client_id=" + githubClientId
                 + "&redirect_uri=" + githubRedirectUri
                 + "&scope=user:email";
@@ -59,6 +84,43 @@ public class AuthController {
         return new ResponseEntity<>(headers, HttpStatus.FOUND);
     }
 
+    /**
+     * 模拟 GitHub 登录（开发/演示模式）
+     * 创建或查找一个模拟的 GitHub 用户，返回 JWT
+     */
+    private ResponseEntity<?> handleMockGithubLogin() {
+        String mockGithubId = "mock_github_12345";
+        String mockUsername = "github_demo";
+        String mockNickname = "GitHub演示用户";
+        String mockAvatar = "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png";
+
+        User user = userRepository.findByGithubId(mockGithubId).orElse(null);
+        if (user == null) {
+            user = new User();
+            user.setUsername(mockUsername);
+            user.setNickname(mockNickname);
+            user.setGithubId(mockGithubId);
+            user.setAvatar(mockAvatar);
+            user.setPassword("");
+            user.setPoints(100);
+            user = userRepository.save(user);
+            log.info("创建模拟GitHub用户: {}", mockUsername);
+        }
+
+        String token = jwtUtil.generateToken(user);
+        return ResponseEntity.ok(Map.of(
+                "id", user.getId(),
+                "username", user.getUsername(),
+                "nickname", user.getNickname(),
+                "avatar", user.getAvatar(),
+                "points", user.getPoints(),
+                "token", token
+        ));
+    }
+
+    /**
+     * GitHub OAuth 回调（正式模式）
+     */
     @GetMapping("/github/callback")
     public ResponseEntity<Void> githubCallback(@RequestParam String code) {
         try {

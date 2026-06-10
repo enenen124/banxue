@@ -56,7 +56,7 @@ public class AiController {
 
     // ==================== AI 聊天（SSE 流式） ====================
 
-    @PostMapping("/chat")
+    @PostMapping(value = "/chat", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter chat(@RequestBody Map<String, String> body, HttpServletRequest request) {
         SseEmitter emitter = new SseEmitter(120_000L); // 2分钟超时
 
@@ -82,8 +82,8 @@ public class AiController {
                 try {
                     String errorJson = objectMapper.writeValueAsString(
                             Map.of("error", "AI服务暂时不可用，请稍后重试"));
-                    emitter.send("data: " + errorJson + "\n\n");
-                    emitter.send("data: [DONE]\n\n");
+                    emitter.send(SseEmitter.event().data(errorJson));
+                    emitter.send(SseEmitter.event().data("[DONE]"));
                 } catch (Exception ex) {
                     log.error("SSE send error: ", ex);
                 }
@@ -185,7 +185,7 @@ public class AiController {
             if (line.startsWith("data: ")) {
                 String data = line.substring(6).trim();
                 if (data.equals("[DONE]")) {
-                    emitter.send("data: [DONE]\n\n");
+                    emitter.send(SseEmitter.event().data("[DONE]"));
                     break;
                 }
                 try {
@@ -199,7 +199,7 @@ public class AiController {
                             chunk.put("choices", List.of(
                                     Map.of("delta", Map.of("content", content.asText()))
                             ));
-                            emitter.send("data: " + objectMapper.writeValueAsString(chunk) + "\n\n");
+                            emitter.send(SseEmitter.event().data(objectMapper.writeValueAsString(chunk)));
                         }
                     }
                 } catch (Exception e) {
@@ -253,10 +253,10 @@ public class AiController {
             chunk.put("choices", List.of(
                     Map.of("delta", Map.of("content", String.valueOf(reply.charAt(i))))
             ));
-            emitter.send("data: " + objectMapper.writeValueAsString(chunk) + "\n\n");
+            emitter.send(SseEmitter.event().data(objectMapper.writeValueAsString(chunk)));
             Thread.sleep(30); // 模拟打字效果
         }
-        emitter.send("data: [DONE]\n\n");
+        emitter.send(SseEmitter.event().data("[DONE]"));
         emitter.complete();
     }
 
@@ -267,6 +267,9 @@ public class AiController {
         String lower = message.toLowerCase();
         if (lower.contains("你是谁") || lower.contains("你叫什么") || lower.contains("你好") || lower.contains("hello") || lower.contains("hi")) {
             return "你好！我是「伴学AI」🤖 你的智能学习助手！我可以帮你解答关于学习方法、时间管理、考试技巧等方面的问题。有什么想问的尽管说~";
+        }
+        if (lower.contains("高效") || lower.contains("学习方法") || lower.contains("怎么学") || lower.contains("如何学") || lower.contains("怎样学")) {
+            return "高效学习的方法推荐：\n1. 🍅 **番茄工作法**：25分钟专注 + 5分钟休息，每4个循环长休15分钟\n2. 📝 **主动回忆**：合上书本，尝试回忆刚才学的内容\n3. 🧠 **费曼学习法**：用自己的话把知识教给别人\n4. 🔁 **间隔重复**：在1天、3天、7天后复习\n5. 🎯 **目标拆分**：把大任务拆成可执行的小步骤\n6. 📵 **减少干扰**：手机静音、关闭通知，创造专注环境";
         }
         if (lower.contains("专注") || lower.contains("集中") || lower.contains("分心")) {
             return "提高专注力的方法：\n1. 🍅 番茄工作法：25分钟专注 + 5分钟休息\n2. 📱 手机静音并放到视线之外\n3. 🎯 每次只设定一个小目标\n4. 🎵 尝试白噪音或轻音乐\n5. 💧 保持充足水分，适当休息";
@@ -280,7 +283,13 @@ public class AiController {
         if (lower.contains("考试") || lower.contains("复习") || lower.contains("备考")) {
             return "考试复习建议：\n1. 📖 先复习重点和难点\n2. 📝 做历年真题找感觉\n3. 🗓️ 制定倒计时复习计划\n4. 👥 和同学组队互相考问\n5. 😴 考前保证充足睡眠";
         }
-        return "感谢你的提问！💡 我擅长解答学习方法、时间管理、考试技巧等方面的问题。试试换个关键词问我吧！";
+        if (lower.contains("数学") || lower.contains("高数") || lower.contains("编程") || lower.contains("代码") || lower.contains("英语") || lower.contains("单词")) {
+            return "学科学习建议：\n1. 📖 **理解优先**：先搞懂概念和原理，再做题练习\n2. ✍️ **多动手**：数学多做题，编程多写代码，英语多读多说\n3. 🗂️ **错题整理**：建立错题本，定期回顾\n4. 👥 **讨论交流**：和同学讨论能加深理解\n5. 📚 **善用资源**：B站、MOOC等平台有很多优质课程";
+        }
+        if (lower.contains("压力") || lower.contains("焦虑") || lower.contains("紧张") || lower.contains("心态")) {
+            return "学习压力调节建议：\n1. 🏃 适当运动，释放压力\n2. 🎵 听音乐放松\n3. 😴 保证充足睡眠\n4. 💬 和朋友家人倾诉\n5. 📝 写下烦恼，理清思路\n6. 🎯 降低期望，接受不完美";
+        }
+        return "感谢你的提问！💡 我擅长解答学习方法、时间管理、考试技巧、学科学习等方面的问题。你可以试试问我：\n- 如何高效学习？\n- 怎么提高专注力？\n- 考试复习有什么技巧？\n- 学习压力大怎么办？";
     }
 
     private String generateFallbackAnalysis(Map<String, Object> body) {
