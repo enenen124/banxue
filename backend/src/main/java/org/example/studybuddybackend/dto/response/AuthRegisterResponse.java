@@ -9,5 +9,6 @@ public class AuthRegisterResponse {
     private String nickname;
     private String avatar;
     private Integer points;
+    private String role;
     private String token;
 }

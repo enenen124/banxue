@@ -58,6 +58,7 @@ public class UserServiceImpl implements UserService {
         result.put("nickname", user.getNickname());
         result.put("avatar", user.getAvatar());
         result.put("points", user.getPoints());
+        result.put("role", user.getRole());
         result.put("favorites", favoritePostIds);
         result.put("achievements", unlockedAchievements);
         result.put("createdAt", user.getCreatedAt());
