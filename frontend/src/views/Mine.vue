@@ -1068,7 +1068,7 @@ onMounted(loadData)
           <div v-if="myPosts.length === 0" class="empty">还没有发布过帖子</div>
           <div v-else class="masonry2">
             <div v-for="post in myPosts" :key="post.id" class="mine-card">
-              <img v-if="post.images?.[0]" :src="IMG_BASE + post.images[0]" class="mine-card-img" @error="e => e.target.style.display = 'none'" />
+              <img v-if="post.images?.[0]" :src="imgUrl(post.images[0])" class="mine-card-img" @error="e => e.target.style.display = 'none'" />
               <p class="mine-card-content">{{ post.content }}</p>
               <div class="mine-card-footer">
                 <span class="mine-card-stat"><Icon icon="mdi:heart-outline" class="mine-stat-icon" /> {{ post.likeCount }}</span>
@@ -1148,7 +1148,7 @@ onMounted(loadData)
             <div class="mine-card-author">
               <span>{{ post.author?.nickname }}</span>
             </div>
-            <img v-if="post.images?.[0]" :src="IMG_BASE + post.images[0]" class="mine-card-img" @error="e => e.target.style.display = 'none'" />
+            <img v-if="post.images?.[0]" :src="imgUrl(post.images[0])" class="mine-card-img" @error="e => e.target.style.display = 'none'" />
             <p class="mine-card-content">{{ post.content }}</p>
             <div class="mine-card-footer">
                 <span class="mine-card-stat"><Icon icon="mdi:heart-outline" class="mine-stat-icon" /> {{ post.likeCount }}</span>

@@ -3,10 +3,10 @@ import { ref, onMounted } from 'vue'
 import { Icon } from '@iconify/vue'
 import { useUserStore } from '../stores/user'
 import request from '../utils/request'
+import { imgUrl } from '../utils/image'
 
 const userStore = useUserStore()
 const tab = ref('users')
-const IMG_BASE = window.location.hostname === 'localhost' ? '' : 'https://banxue-backend-klem.onrender.com'
 
 // 用户列表
 const users = ref([])
@@ -96,7 +96,7 @@ onMounted(() => fetchUsers())
         </thead>
         <tbody>
           <tr v-for="u in users" :key="u.id" :class="{ banned: u.status === 1 }">
-            <td><img v-if="u.avatar" :src="IMG_BASE + u.avatar" class="avatar" @error="e => e.target.style.display = 'none'" /><span v-else>—</span></td>
+            <td><img v-if="u.avatar" :src="imgUrl(u.avatar)" class="avatar" @error="e => e.target.style.display = 'none'" /><span v-else>—</span></td>
             <td>{{ u.nickname }}</td>
             <td>{{ u.points }}</td>
             <td><span class="tag" :class="u.role">{{ u.role === 'admin' ? '管理员' : '用户' }}</span></td>
@@ -136,7 +136,7 @@ onMounted(() => fetchUsers())
         </div>
         <div class="post-content">{{ p.content }}</div>
         <div v-if="p.images?.length" class="post-images">
-          <img v-for="(img, i) in p.images" :key="i" :src="IMG_BASE + img" @error="e => e.target.style.display = 'none'" />
+          <img v-for="(img, i) in p.images" :key="i" :src="imgUrl(img)" @error="e => e.target.style.display = 'none'" />
         </div>
         <div class="post-stats">💬{{ p.commentCount }} ❤️{{ p.likeCount }}</div>
         <button class="btn-sm danger" @click="adminDeletePost(p.id)">删除帖子</button>

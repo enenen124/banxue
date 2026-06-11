@@ -238,7 +238,7 @@ onMounted(() => fetchPosts())
         <!-- 图片 -->
         <img
           v-if="post.images?.[0]"
-          :src="IMG_BASE + post.images[0]"
+          :src="imgUrl(post.images[0])"
           class="card-image"
           loading="lazy"
           @error="e => e.target.style.display = 'none'"
