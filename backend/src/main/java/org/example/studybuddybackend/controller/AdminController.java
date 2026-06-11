@@ -83,6 +83,15 @@ public class AdminController {
         return ResponseEntity.ok(adminService.getAllPosts());
     }
 
+    @PutMapping("/posts/{id}")
+    public ResponseEntity<Map<String, Object>> updatePost(
+            @PathVariable Long id,
+            @RequestBody Map<String, String> body,
+            HttpServletRequest request) {
+        checkAdmin(request);
+        return ResponseEntity.ok(adminService.updatePost(id, body.get("content")));
+    }
+
     @DeleteMapping("/posts/{id}")
     public ResponseEntity<Map<String, String>> deletePost(
             @PathVariable Long id,

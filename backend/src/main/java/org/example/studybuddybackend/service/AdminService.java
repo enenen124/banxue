@@ -11,5 +11,6 @@ public interface AdminService {
     Map<String, Object> settleRoom(Long roomId);
     void deleteRoom(Long roomId);
     List<Map<String, Object>> getAllPosts();
+    Map<String, Object> updatePost(Long postId, String content);
     void deletePost(Long postId);
 }

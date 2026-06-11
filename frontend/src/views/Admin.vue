@@ -51,6 +51,7 @@ const adminDeleteRoom = async (id) => {
 // 帖子列表
 const posts = ref([])
 const loadingPosts = ref(false)
+const postSearch = ref('')
 
 const fetchPosts = async () => {
   loadingPosts.value = true
@@ -58,9 +59,33 @@ const fetchPosts = async () => {
   loadingPosts.value = false
 }
 
+const filteredPosts = () => {
+  if (!postSearch.value.trim()) return posts.value
+  const keyword = postSearch.value.toLowerCase()
+  return posts.value.filter(p =>
+    p.content?.toLowerCase().includes(keyword) ||
+    p.author?.nickname?.toLowerCase().includes(keyword)
+  )
+}
+
 const adminDeletePost = async (id) => {
   if (!confirm('确定删除该帖子及所有评论？')) return
   try { await request.delete(`/admin/posts/${id}`); await fetchPosts() } catch {}
+}
+
+// 帖子编辑弹窗
+const showPostEdit = ref(null)
+const postEditContent = ref('')
+const openPostEdit = (post) => {
+  showPostEdit.value = post
+  postEditContent.value = post.content
+}
+const savePostEdit = async () => {
+  try {
+    const res = await request.put(`/admin/posts/${showPostEdit.value.id}`, { content: postEditContent.value })
+    showPostEdit.value.content = res.content || postEditContent.value
+    showPostEdit.value = null
+  } catch (e) { alert(e.response?.data?.message || '保存失败') }
 }
 
 // 积分编辑弹窗
@@ -129,7 +154,13 @@ onMounted(() => fetchUsers())
 
     <!-- 内容审核 -->
     <div v-if="tab === 'posts'" class="panel">
-      <div v-for="p in posts" :key="p.id" class="post-card">
+      <div class="post-toolbar">
+        <input v-model="postSearch" class="search-input" placeholder="搜索帖子内容或作者..." />
+        <span class="post-count">共 {{ filteredPosts().length }} 条帖子</span>
+      </div>
+      <div v-if="loadingPosts" class="loading">加载中...</div>
+      <div v-else-if="filteredPosts().length === 0" class="empty-tip">暂无帖子</div>
+      <div v-else v-for="p in filteredPosts()" :key="p.id" class="post-card">
         <div class="post-header">
           <span class="post-author">{{ p.author?.nickname }}</span>
           <span class="post-time">{{ new Date(p.createdAt).toLocaleString() }}</span>
@@ -138,8 +169,13 @@ onMounted(() => fetchUsers())
         <div v-if="p.images?.length" class="post-images">
           <img v-for="(img, i) in p.images" :key="i" :src="imgUrl(img)" @error="e => e.target.style.display = 'none'" />
         </div>
-        <div class="post-stats">💬{{ p.commentCount }} ❤️{{ p.likeCount }}</div>
-        <button class="btn-sm danger" @click="adminDeletePost(p.id)">删除帖子</button>
+        <div class="post-footer">
+          <div class="post-stats">💬{{ p.commentCount }} ❤️{{ p.likeCount }}</div>
+          <div class="post-actions">
+            <button class="btn-sm" @click="openPostEdit(p)">编辑</button>
+            <button class="btn-sm danger" @click="adminDeletePost(p.id)">删除</button>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -151,6 +187,19 @@ onMounted(() => fetchUsers())
         <div class="modal-btns">
           <button class="btn-cancel" @click="showPointsEdit = null">取消</button>
           <button class="btn-confirm" @click="savePoints">保存</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 帖子编辑弹窗 -->
+    <div v-if="showPostEdit" class="modal-overlay" @click.self="showPostEdit = null">
+      <div class="modal modal-wide">
+        <h3>编辑帖子</h3>
+        <p class="edit-author">作者：{{ showPostEdit.author?.nickname }}</p>
+        <textarea v-model="postEditContent" class="modal-textarea" rows="6" placeholder="帖子内容..."></textarea>
+        <div class="modal-btns">
+          <button class="btn-cancel" @click="showPostEdit = null">取消</button>
+          <button class="btn-confirm" @click="savePostEdit">保存</button>
         </div>
       </div>
     </div>
@@ -192,14 +241,21 @@ tr.banned { background: #fff5f5; }
 .room-actions { display: flex; gap: 6px; }
 
 /* 帖子卡片 */
+.post-toolbar { display: flex; gap: 12px; align-items: center; margin-bottom: 16px; }
+.search-input { flex: 1; height: 36px; padding: 0 12px; border: 1px solid #e0e0e0; border-radius: 8px; font-size: 13px; outline: none; }
+.search-input:focus { border-color: #2E7D32; }
+.post-count { font-size: 12px; color: #999; white-space: nowrap; }
+.loading, .empty-tip { text-align: center; padding: 30px; color: #999; font-size: 14px; }
 .post-card { border: 1px solid #f0f0f0; border-radius: 10px; padding: 14px; margin-bottom: 10px; }
 .post-header { display: flex; justify-content: space-between; margin-bottom: 6px; }
 .post-author { font-weight: 600; font-size: 13px; }
 .post-time { font-size: 11px; color: #999; }
-.post-content { font-size: 13px; margin-bottom: 6px; }
+.post-content { font-size: 13px; margin-bottom: 6px; white-space: pre-wrap; word-break: break-all; }
 .post-images { display: flex; gap: 8px; margin-bottom: 6px; }
 .post-images img { width: 80px; height: 80px; object-fit: cover; border-radius: 6px; }
-.post-stats { font-size: 12px; color: #999; margin-bottom: 8px; }
+.post-footer { display: flex; justify-content: space-between; align-items: center; }
+.post-stats { font-size: 12px; color: #999; }
+.post-actions { display: flex; gap: 6px; }
 
 /* 弹窗 */
 .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.3); display: flex; align-items: center; justify-content: center; z-index: 200; }
@@ -210,4 +266,8 @@ tr.banned { background: #fff5f5; }
 .btn-cancel, .btn-confirm { padding: 8px 20px; border: none; border-radius: 8px; font-size: 13px; cursor: pointer; }
 .btn-cancel { background: #f0f0f0; color: #666; }
 .btn-confirm { background: #1c1d1c; color: #fff; }
+.modal-wide { width: 480px; }
+.edit-author { font-size: 12px; color: #999; margin-bottom: 10px; }
+.modal-textarea { width: 100%; padding: 10px 12px; border: 1px solid #e0e0e0; border-radius: 8px; font-size: 14px; outline: none; resize: vertical; margin-bottom: 12px; font-family: inherit; }
+.modal-textarea:focus { border-color: #2E7D32; }
 </style>

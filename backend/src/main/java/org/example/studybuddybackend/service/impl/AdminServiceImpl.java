@@ -198,6 +198,27 @@ public class AdminServiceImpl implements AdminService {
 
     @Override
     @Transactional
+    public Map<String, Object> updatePost(Long postId, String content) {
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new RuntimeException("帖子不存在"));
+        if (content != null && !content.isBlank()) {
+            post.setContent(content);
+        }
+        post = postRepository.save(post);
+
+        Map<String, Object> map = new LinkedHashMap<>();
+        map.put("id", post.getId());
+        map.put("content", post.getContent());
+        map.put("images", post.getImages());
+        map.put("likeCount", post.getLikeCount());
+        map.put("commentCount", post.getCommentCount());
+        map.put("createdAt", post.getCreatedAt());
+        map.put("message", "更新成功");
+        return map;
+    }
+
+    @Override
+    @Transactional
     public void deletePost(Long postId) {
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new RuntimeException("帖子不存在"));
