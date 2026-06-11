@@ -94,15 +94,27 @@ public class AiController {
         return emitter;
     }
 
-    // ==================== AI 学习分析 ====================
+    // ==================== AI 学习分析（SSE 流式） ====================
 
-    @PostMapping("/analysis")
-    public ResponseEntity<Map<String, Object>> analyze(
+    @PostMapping(value = "/analysis", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public SseEmitter analyze(
             @RequestBody(required = false) Map<String, Object> body,
             HttpServletRequest request) {
 
+        SseEmitter emitter = new SseEmitter(120_000L);
+
         if (body == null || body.isEmpty()) {
-            return ResponseEntity.badRequest().body(Map.of("message", "缺少学习数据"));
+            executor.execute(() -> {
+                try {
+                    String errJson = objectMapper.writeValueAsString(Map.of("error", "缺少学习数据"));
+                    emitter.send(SseEmitter.event().data(errJson));
+                    emitter.send(SseEmitter.event().data("[DONE]"));
+                } catch (Exception e) {
+                    log.error("SSE error: ", e);
+                }
+                emitter.complete();
+            });
+            return emitter;
         }
 
         // 构建分析提示词
@@ -133,20 +145,49 @@ public class AiController {
 
         prompt.append("\n请给出鼓励性的分析和具体建议。");
 
-        // 调用 AI API（非流式）
-        try {
-            if (apiKey == null || apiKey.isBlank() || apiKey.equals("your-siliconflow-api-key")) {
-                // API Key 未配置，使用模板生成
-                return ResponseEntity.ok(Map.of("analysis", generateFallbackAnalysis(body)));
+        executor.execute(() -> {
+            try {
+                if (apiKey == null || apiKey.isBlank() || apiKey.equals("your-siliconflow-api-key")) {
+                    // API Key 未配置，使用 fallback 逐字模拟流式
+                    String fallback = generateFallbackAnalysis(body);
+                    for (int i = 0; i < fallback.length(); i++) {
+                        Map<String, Object> chunk = new LinkedHashMap<>();
+                        chunk.put("choices", List.of(
+                                Map.of("delta", Map.of("content", String.valueOf(fallback.charAt(i))))
+                        ));
+                        emitter.send(SseEmitter.event().data(objectMapper.writeValueAsString(chunk)));
+                        Thread.sleep(20);
+                    }
+                    emitter.send(SseEmitter.event().data("[DONE]"));
+                    emitter.complete();
+                    return;
+                }
+
+                // 调用硅基流动流式 API
+                callSiliconFlowStreaming(emitter, prompt.toString());
+
+            } catch (Exception e) {
+                log.error("AI analysis error: ", e);
+                try {
+                    // 出错时用 fallback 逐字输出
+                    String fallback = generateFallbackAnalysis(body);
+                    for (int i = 0; i < fallback.length(); i++) {
+                        Map<String, Object> chunk = new LinkedHashMap<>();
+                        chunk.put("choices", List.of(
+                                Map.of("delta", Map.of("content", String.valueOf(fallback.charAt(i))))
+                        ));
+                        emitter.send(SseEmitter.event().data(objectMapper.writeValueAsString(chunk)));
+                        Thread.sleep(20);
+                    }
+                    emitter.send(SseEmitter.event().data("[DONE]"));
+                } catch (Exception ex) {
+                    log.error("SSE send error: ", ex);
+                }
+                emitter.complete();
             }
+        });
 
-            String analysis = callSiliconFlow(prompt.toString(), false);
-            return ResponseEntity.ok(Map.of("analysis", analysis));
-
-        } catch (Exception e) {
-            log.error("AI analysis error: ", e);
-            return ResponseEntity.ok(Map.of("analysis", generateFallbackAnalysis(body)));
-        }
+        return emitter;
     }
 
     // ==================== 硅基流动 API 调用（流式） ====================

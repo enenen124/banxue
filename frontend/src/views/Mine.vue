@@ -937,20 +937,75 @@ const buildCharts = () => {
   }
 }
 
-// ==================== AI学习分析 ====================
+// ==================== AI学习分析（SSE 流式） ====================
 const aiAnalyze = async () => {
   aiLoading.value = true
   aiResult.value = ''
   try {
     const { totalMinutes, totalHours, roomCount, qualifiedCount, unqualifiedCount, postCount } = stats.value
     const daily = chartData.value.daily
-    const data = await request.post('/ai/analysis', {
-      totalMinutes, totalHours, roomCount, qualifiedCount, unqualifiedCount, postCount, daily
+
+    const API_BASE = window.location.hostname === 'localhost' ? '' : 'https://banxue-backend-klem.onrender.com'
+    const token = localStorage.getItem('token')
+
+    const response = await fetch(API_BASE + '/api/ai/analysis', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`
+      },
+      body: JSON.stringify({ totalMinutes, totalHours, roomCount, qualifiedCount, unqualifiedCount, postCount, daily })
     })
-    aiResult.value = data.analysis || data.suggestion || data.message || '暂无分析数据'
+
+    if (!response.ok) {
+      aiResult.value = 'AI分析暂时不可用，请稍后再试~'
+      aiLoading.value = false
+      return
+    }
+
+    const contentType = response.headers.get('content-type') || ''
+    if (contentType.includes('text/event-stream')) {
+      // SSE 流式解析
+      const reader = response.body.getReader()
+      const decoder = new TextDecoder()
+      let buffer = ''
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) {
+          aiLoading.value = false
+          break
+        }
+        buffer += decoder.decode(value, { stream: true })
+        const lines = buffer.split('\n')
+        buffer = lines.pop()
+
+        for (const line of lines) {
+          const trimmed = line.trim()
+          if (!trimmed.startsWith('data:')) continue
+          const payload = trimmed.slice(5).trim()
+          if (!payload || payload === '[DONE]') continue
+          try {
+            const json = JSON.parse(payload)
+            if (json.error) {
+              aiResult.value = '⚠️ ' + json.error
+              continue
+            }
+            let content = json.reply || json.choices?.[0]?.delta?.content || json.analysis || ''
+            if (content) {
+              aiResult.value += content
+            }
+          } catch { /* 跳过解析失败的行 */ }
+        }
+      }
+    } else {
+      // 普通 JSON 响应（兼容旧版后端）
+      const data = await response.json()
+      aiResult.value = data.analysis || data.suggestion || data.message || '暂无分析数据'
+      aiLoading.value = false
+    }
   } catch (e) {
     aiResult.value = 'AI分析暂时不可用，请稍后再试~'
-  } finally {
     aiLoading.value = false
   }
 }
