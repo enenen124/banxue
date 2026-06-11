@@ -23,7 +23,8 @@ public class WebConfig implements WebMvcConfigurer {
                 .allowedOrigins(
                         "http://localhost:5173",
                         "http://localhost:8080",
-                        "https://banxue.vercel.app"
+                        "https://banxue.vercel.app",
+                        "https://banxue-red.vercel.app"
                 )
                 .allowedMethods("*")
                 .allowedHeaders("*")
