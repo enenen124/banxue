@@ -29,6 +29,7 @@ public class AchievementController {
             HttpServletRequest request) {
         Long userId = (Long) request.getAttribute("userId");
         String achievementCode = body.get("achievementCode");
+        String txHash = body.getOrDefault("txHash", "0x" + UUID.randomUUID().toString().replace("-", ""));
 
         if (achievementCode == null || achievementCode.isEmpty()) {
             return ResponseEntity.badRequest().body(Map.of("message", "成就代码不能为空"));
@@ -49,7 +50,7 @@ public class AchievementController {
         record.setUserId(userId);
         record.setAchievementCode(achievementCode);
         record.setTokenId("NFT-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase());
-        record.setTxHash("0x" + UUID.randomUUID().toString().replace("-", ""));
+        record.setTxHash(txHash);
         record.setStatus("minted");
         mintRecordRepository.save(record);
 
