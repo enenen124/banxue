@@ -170,11 +170,11 @@ public class AiController {
         HttpEntity<String> entity = new HttpEntity<>(
                 objectMapper.writeValueAsString(requestBody), headers);
 
-        // 发送请求获取流式响应
-        ResponseEntity<String> response = restTemplate.exchange(
-                apiUrl, HttpMethod.POST, entity, String.class);
+        // 发送请求获取流式响应（用 byte[] 避免 RestTemplate 默认 ISO-8859-1 乱码）
+        ResponseEntity<byte[]> response = restTemplate.exchange(
+                apiUrl, HttpMethod.POST, entity, byte[].class);
 
-        String responseBody = response.getBody();
+        String responseBody = new String(response.getBody(), StandardCharsets.UTF_8);
         if (responseBody == null) {
             throw new RuntimeException("Empty response from SiliconFlow");
         }
@@ -231,10 +231,11 @@ public class AiController {
         HttpEntity<String> entity = new HttpEntity<>(
                 objectMapper.writeValueAsString(requestBody), headers);
 
-        ResponseEntity<String> response = restTemplate.exchange(
-                apiUrl, HttpMethod.POST, entity, String.class);
+        ResponseEntity<byte[]> response = restTemplate.exchange(
+                apiUrl, HttpMethod.POST, entity, byte[].class);
 
-        JsonNode root = objectMapper.readTree(response.getBody());
+        String body = new String(response.getBody(), StandardCharsets.UTF_8);
+        JsonNode root = objectMapper.readTree(body);
         JsonNode choices = root.path("choices");
         if (choices.isArray() && !choices.isEmpty()) {
             return choices.get(0).path("message").path("content").asText();

@@ -3,6 +3,8 @@ package org.example.studybuddybackend.service.impl;
 import org.example.studybuddybackend.entity.*;
 import org.example.studybuddybackend.repository.*;
 import org.example.studybuddybackend.service.UserService;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -26,6 +28,7 @@ public class UserServiceImpl implements UserService {
     private final StudyRoomMemberRepository studyRoomMemberRepository;
     private final PostLikeRepository postLikeRepository;
     private final BCryptPasswordEncoder passwordEncoder;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     private static final Map<String, String[]> ACHIEVEMENTS = new LinkedHashMap<>();
     static {
@@ -252,7 +255,7 @@ public class UserServiceImpl implements UserService {
                     Map<String, Object> map = new LinkedHashMap<>();
                     map.put("id", post.getId());
                     map.put("content", post.getContent());
-                    map.put("images", post.getImages());
+                    map.put("images", parseImages(post.getImages()));
                     map.put("likeCount", post.getLikeCount());
                     map.put("commentCount", post.getCommentCount());
                     map.put("createdAt", post.getCreatedAt());
@@ -271,7 +274,7 @@ public class UserServiceImpl implements UserService {
                     Map<String, Object> map = new LinkedHashMap<>();
                     map.put("id", post.getId());
                     map.put("content", post.getContent());
-                    map.put("images", post.getImages());
+                    map.put("images", parseImages(post.getImages()));
                     map.put("likeCount", post.getLikeCount());
                     map.put("commentCount", post.getCommentCount());
                     map.put("createdAt", post.getCreatedAt());
@@ -279,5 +282,13 @@ public class UserServiceImpl implements UserService {
                 })
                 .filter(Objects::nonNull)
                 .collect(Collectors.toList());
+    }
+
+    private List<String> parseImages(String imagesJson) {
+        try {
+            return objectMapper.readValue(imagesJson, new TypeReference<List<String>>() {});
+        } catch (Exception e) {
+            return new ArrayList<>();
+        }
     }
 }

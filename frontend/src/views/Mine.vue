@@ -779,7 +779,7 @@ const loadData = async () => {
     try {
       const records = await request.get('/achievements/mint-records')
       const map = {}
-      records.forEach(r => { map[r.achievementId] = r })
+      records.forEach(r => { const idx = ACH_ID_MAP[r.achievementCode]; if (idx !== undefined) map[idx] = r })
       mintedMap.value = map
     } catch {}
   } catch (e) {
@@ -947,7 +947,7 @@ const aiAnalyze = async () => {
     const data = await request.post('/ai/analysis', {
       totalMinutes, totalHours, roomCount, qualifiedCount, unqualifiedCount, postCount, daily
     })
-    aiResult.value = data.suggestion || data.message || '暂无分析数据'
+    aiResult.value = data.analysis || data.suggestion || data.message || '暂无分析数据'
   } catch (e) {
     aiResult.value = 'AI分析暂时不可用，请稍后再试~'
   } finally {
