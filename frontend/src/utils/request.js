@@ -8,7 +8,7 @@ const API_BASE = window.location.hostname === 'localhost'
 // 创建 axios 实例，设置后端地址
 const request = axios.create({
   baseURL: API_BASE,
-  timeout: 10000 // 10秒超时
+  timeout: 60000 // 60秒超时（Render免费套餐冷启动可能较慢）
 })
 
 // 请求拦截器：自动给每个请求加上 token

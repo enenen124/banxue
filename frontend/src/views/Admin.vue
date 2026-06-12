@@ -14,7 +14,7 @@ const loadingUsers = ref(false)
 
 const fetchUsers = async () => {
   loadingUsers.value = true
-  try { users.value = await request.get('/admin/users') } catch {}
+  try { users.value = await request.get('/admin/users') } catch (e) { console.error('获取用户失败:', e.message) }
   loadingUsers.value = false
 }
 
@@ -31,7 +31,7 @@ const loadingRooms = ref(false)
 
 const fetchRooms = async () => {
   loadingRooms.value = true
-  try { rooms.value = await request.get('/admin/rooms') } catch {}
+  try { rooms.value = await request.get('/admin/rooms') } catch (e) { console.error('获取自习室失败:', e.message) }
   loadingRooms.value = false
 }
 
@@ -55,7 +55,7 @@ const postSearch = ref('')
 
 const fetchPosts = async () => {
   loadingPosts.value = true
-  try { posts.value = await request.get('/admin/posts') } catch {}
+  try { posts.value = await request.get('/admin/posts') } catch (e) { console.error('获取帖子失败:', e.message) }
   loadingPosts.value = false
 }
 
