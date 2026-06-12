@@ -706,7 +706,9 @@ const connectWallet = async () => {
     // 查询余额
     const provider = new BrowserProvider(window.ethereum)
     const balance = await provider.getBalance(walletAddress.value)
-    walletBalance.value = formatEther(balance)
+    // formatEther 返回字符串，截取4位小数避免触发MetaMask BigNumber精度bug
+    const rawBalance = formatEther(balance)
+    walletBalance.value = parseFloat(rawBalance).toFixed(4)
   } catch (e) {
     if (e.code === 4902) {
       alert('请先在 MetaMask 中添加 Sepolia 测试网络')
@@ -1243,7 +1245,7 @@ onMounted(loadData)
           </button>
           <div v-else class="wallet-info">
             <span class="wallet-addr">{{ walletAddress.slice(0, 6) }}...{{ walletAddress.slice(-4) }}</span>
-            <span class="wallet-balance">{{ Number(walletBalance).toFixed(4) }} Sepolia ETH</span>
+            <span class="wallet-balance">{{ walletBalance }} Sepolia ETH</span>
           </div>
         </div>
 
