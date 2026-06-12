@@ -109,8 +109,12 @@ onMounted(async () => {
     userStore.token = urlToken
     localStorage.setItem('token', urlToken)
     successMsg.value = '👋 GitHub登录成功！即将跳转...'
-    // 拉取昵称和头像，导航栏才能显示
-    await userStore.fetchProfile()
+    // 拉取昵称和头像，导航栏才能显示（失败也不阻塞跳转）
+    try {
+      await userStore.fetchProfile()
+    } catch (e) {
+      console.warn('获取用户信息失败，稍后重试:', e.message)
+    }
     setTimeout(() => router.push('/discover'), 1000)
   }
 })
